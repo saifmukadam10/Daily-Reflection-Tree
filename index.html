@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Reflection Tree</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8e6e0;
+    --muted: #6e6d67;
+    --accent: #c9a96e;
+    --accent-dim: rgba(201,169,110,0.12);
+    --teal: #4ecdc4;
+    --teal-dim: rgba(78,205,196,0.10);
+    --r: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    min-height: 100vh;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+
+  .shell {
+    width: 100%;
+    max-width: 560px;
+  }
+
+  .brand {
+    font-family: 'DM Serif Display', serif;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand::before {
+    content: '';
+    width: 20px;
+    height: 1px;
+    background: var(--muted);
+    display: inline-block;
+  }
+
+  /* Progress bar */
+  .progress-track {
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 40px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  /* Axis indicator */
+  .axis-label {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .axis-label.visible { opacity: 1; }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 32px;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .card.in { opacity: 1; transform: translateY(0); }
+
+  .node-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 28px;
+    font-style: italic;
+  }
+
+  /* Options */
+  .options { display: flex; flex-direction: column; gap: 10px; }
+
+  .opt {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+    line-height: 1.5;
+  }
+  .opt:hover {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+  .opt.selected {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+
+  /* Continue button */
+  .btn-continue {
+    margin-top: 24px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 28px;
+    color: var(--accent);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.04em;
+  }
+  .btn-continue:hover {
+    background: var(--accent-dim);
+  }
+  .btn-continue:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  /* Reflection card */
+  .reflection-text {
+    font-size: 15px;
+    line-height: 1.8;
+    color: #c8c5bc;
+    font-weight: 300;
+    border-left: 2px solid var(--accent);
+    padding-left: 20px;
+    margin-bottom: 24px;
+  }
+
+  /* Bridge */
+  .bridge-text {
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    text-align: center;
+    padding: 16px 0;
+  }
+
+  /* Summary */
+  .summary-block { display: flex; flex-direction: column; gap: 20px; }
+  .summary-axis {
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    padding: 18px 20px;
+    border-left: 2px solid var(--teal);
+  }
+  .summary-axis-label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 8px;
+  }
+  .summary-axis-lean {
+    font-family: 'DM Serif Display', serif;
+    font-size: 17px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .summary-axis-note {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 300;
+    line-height: 1.6;
+  }
+  .summary-closing {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #c8c5bc;
+    line-height: 1.7;
+    font-style: italic;
+    font-family: 'DM Serif Display', serif;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+
+  /* End */
+  .end-text {
+    text-align: center;
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    color: var(--muted);
+    padding: 20px 0;
+  }
+
+  /* Start screen */
+  .start-text {
+    font-size: 15px;
+    line-height: 1.8;
+    color: #c8c5bc;
+    font-weight: 300;
+    margin-bottom: 28px;
+  }
+
+  .dot-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 40px;
+  }
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .dot.filled { background: var(--accent); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="brand">Daily Reflection</div>
+  <div class="progress-track"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+  <div class="dot-row" id="dots"></div>
+  <div class="axis-label" id="axis-label"></div>
+  <div class="card" id="card"></div>
+</div>
+
+<script>
+const TREE_URL = 'reflection-tree.json';
+
+let nodes = {};
+let state = {
+  answers: {},
+  signals: { axis1: {}, axis2: {}, axis3: {} },
+  history: [],
+  currentId: null,
+  stepCount: 0,
+  totalSteps: 14
+};
+
+const axisLabels = {
+  A1: 'Axis 1 · Locus of control',
+  A2: 'Axis 2 · Orientation',
+  A3: 'Axis 3 · Radius of concern',
+  BRIDGE: '',
+  SUMMARY: 'Your reflection',
+  END: ''
+};
+
+async function loadTree() {
+  const res = await fetch(TREE_URL);
+  const data = await res.json();
+  data.nodes.forEach(n => nodes[n.id] = n);
+  window._summaryTemplates = data.summaryTemplates;
+  goto('START');
+}
+
+function goto(id) {
+  const node = nodes[id];
+  if (!node) return;
+  state.currentId = id;
+  state.history.push(id);
+  if (node.signal) tallySignal(node.signal);
+  updateProgress(id);
+  renderNode(node);
+  if (node.type === 'start' || node.type === 'bridge') {
+    setTimeout(() => advance(node), 1800);
+  }
+  if (node.type === 'decision') {
+    doDecision(node);
+  }
+}
+
+function tallySignal(sig) {
+  const [axis, pole] = sig.split(':');
+  const key = axis.replace('axis', 'axis');
+  if (!state.signals[key]) state.signals[key] = {};
+  state.signals[key][pole] = (state.signals[key][pole] || 0) + 1;
+}
+
+function dominant(axisKey) {
+  const s = state.signals[axisKey] || {};
+  const entries = Object.entries(s);
+  if (!entries.length) return null;
+  return entries.sort((a,b) => b[1]-a[1])[0][0];
+}
+
+function doDecision(node) {
+  const rules = node.options.split(';');
+  const parentAnswer = state.answers[findParentQuestion(node.id)];
+  for (const rule of rules) {
+    const [cond, target] = rule.split(':');
+    const [, values] = cond.split('=');
+    const vals = values.split('|');
+    if (vals.some(v => parentAnswer && parentAnswer.includes(v.trim()))) {
+      goto(target.trim());
+      return;
+    }
+  }
+  const fallback = rules[rules.length-1].split(':')[1].trim();
+  goto(fallback);
+}
+
+function findParentQuestion(decisionId) {
+  const node = nodes[decisionId];
+  return node.parentId;
+}
+
+function advance(node) {
+  if (node.target) goto(node.target);
+  else {
+    const children = Object.values(nodes).filter(n => n.parentId === node.id && n.type !== 'decision');
+    if (children.length === 1) goto(children[0].id);
+    else {
+      const decChild = Object.values(nodes).find(n => n.parentId === node.id && n.type === 'decision');
+      if (decChild) goto(decChild.id);
+    }
+  }
+}
+
+function nextAfter(nodeId) {
+  const node = nodes[nodeId];
+  if (node.target) return node.target;
+  const decChild = Object.values(nodes).find(n => n.parentId === nodeId && n.type === 'decision');
+  if (decChild) return decChild.id;
+  const children = Object.values(nodes).filter(n => n.parentId === nodeId);
+  if (children.length === 1) return children[0].id;
+  return null;
+}
+
+function interpolate(text) {
+  return text.replace(/\{([^}]+)\}/g, (_, key) => {
+    if (key.includes('.answer')) {
+      const nodeId = key.split('.')[0];
+      return state.answers[nodeId] || '';
+    }
+    if (key === 'axis1.dominant') return dominant('axis1') || '';
+    if (key === 'axis2.dominant') return dominant('axis2') || '';
+    if (key === 'axis3.dominant') return dominant('axis3') || '';
+    return key;
+  });
+}
+
+function updateProgress(id) {
+  state.stepCount++;
+  const pct = Math.min(100, Math.round((state.stepCount / state.totalSteps) * 100));
+  document.getElementById('progress').style.width = pct + '%';
+
+  const axisKey = id.startsWith('A1') ? 'A1' : id.startsWith('A2') ? 'A2' :
+                  id.startsWith('A3') ? 'A3' : id.startsWith('BRIDGE') ? 'BRIDGE' :
+                  id === 'SUMMARY' ? 'SUMMARY' : '';
+  const lbl = document.getElementById('axis-label');
+  if (axisKey && axisLabels[axisKey]) {
+    lbl.textContent = axisLabels[axisKey];
+    lbl.classList.add('visible');
+  } else {
+    lbl.classList.remove('visible');
+  }
+
+  const total = 3;
+  const filled = id.startsWith('A3') || id === 'SUMMARY' || id === 'END' ? 3 :
+                 id.startsWith('A2') || id.startsWith('BRIDGE_2') ? 2 :
+                 id.startsWith('A1') || id.startsWith('BRIDGE_1') ? 1 : 0;
+  const dotsEl = document.getElementById('dots');
+  dotsEl.innerHTML = Array.from({length: total}, (_,i) =>
+    `<div class="dot ${i < filled ? 'filled' : ''}"></div>`
+  ).join('');
+}
+
+function renderNode(node) {
+  const card = document.getElementById('card');
+  card.classList.remove('in');
+  setTimeout(() => {
+    card.innerHTML = buildHTML(node);
+    card.classList.add('in');
+    attachEvents(node);
+  }, 180);
+}
+
+function buildHTML(node) {
+  const text = interpolate(node.text || '');
+
+  if (node.type === 'start') {
+    return `<div class="start-text">${text}</div>`;
+  }
+
+  if (node.type === 'bridge') {
+    return `<div class="bridge-text">${text}</div>`;
+  }
+
+  if (node.type === 'question') {
+    const opts = node.options.map((o, i) =>
+      `<button class="opt" data-idx="${i}" data-val="${o.replace(/"/g,'&quot;')}">${o}</button>`
+    ).join('');
+    return `
+      <div class="node-text">${text}</div>
+      <div class="options">${opts}</div>
+      <button class="btn-continue" id="btn-cont" disabled>Continue</button>
+    `;
+  }
+
+  if (node.type === 'reflection') {
+    return `
+      <div class="reflection-text">${text}</div>
+      <button class="btn-continue" id="btn-cont">Continue</button>
+    `;
+  }
+
+  if (node.type === 'summary') {
+    return buildSummary();
+  }
+
+  if (node.type === 'end') {
+    return `<div class="end-text">${text}</div>`;
+  }
+
+  return `<div class="node-text">${text}</div>`;
+}
+
+function buildSummary() {
+  const T = window._summaryTemplates;
+  const a1 = dominant('axis1') || 'internal';
+  const a2 = dominant('axis2') || 'contribution';
+  const a3 = dominant('axis3') || 'self';
+
+  const axis1data = T.axis1[a1];
+  const axis2data = T.axis2[a2];
+  const axis3data = T.axis3[a3];
+
+  const closingKey = a1 === 'internal' && a2 === 'contribution' && a3 === 'other'
+    ? 'victor_contribution_other'
+    : a1 === 'external' && a2 === 'entitlement' && a3 === 'self'
+    ? 'victim_entitlement_self'
+    : 'default';
+  const closing = T.closingNotes[closingKey];
+
+  return `
+    <div class="summary-block">
+      <div class="summary-axis">
+        <div class="summary-axis-label">Axis 1 · Locus</div>
+        <div class="summary-axis-lean">Leaned ${axis1data.label}</div>
+        <div class="summary-axis-note">${axis1data.summary}</div>
+      </div>
+      <div class="summary-axis">
+        <div class="summary-axis-label">Axis 2 · Orientation</div>
+        <div class="summary-axis-lean">Leaned ${axis2data.label}</div>
+        <div class="summary-axis-note">${axis2data.summary}</div>
+      </div>
+      <div class="summary-axis">
+        <div class="summary-axis-label">Axis 3 · Radius</div>
+        <div class="summary-axis-lean">Leaned ${axis3data.label}</div>
+        <div class="summary-axis-note">${axis3data.summary}</div>
+      </div>
+      <div class="summary-closing">${closing}</div>
+    </div>
+    <button class="btn-continue" id="btn-cont" style="margin-top:24px">Close the day</button>
+  `;
+}
+
+function attachEvents(node) {
+  if (node.type === 'question') {
+    document.querySelectorAll('.opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.opt').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        state.answers[node.id] = btn.dataset.val;
+        document.getElementById('btn-cont').disabled = false;
+      });
+    });
+    document.getElementById('btn-cont').addEventListener('click', () => {
+      if (node.signal) tallySignal(node.signal);
+      advance(node);
+    });
+  }
+
+  if (node.type === 'reflection' || node.type === 'summary') {
+    document.getElementById('btn-cont').addEventListener('click', () => {
+      advance(node);
+    });
+  }
+}
+
+loadTree().catch(err => {
+  document.getElementById('card').innerHTML =
+    `<div class="node-text">Could not load reflection-tree.json.<br><small style="font-size:13px;color:var(--muted)">${err.message}</small></div>`;
+  document.getElementById('card').classList.add('in');
+});
+</script>
+</body>
+</html>
